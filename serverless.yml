@@ -1,0 +1,50 @@
+service: nuel-wp-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-west-2
+  timeout: 30
+  iam:
+    role:
+      name: nuel-wp-api
+      path: /custom-role-path/
+      statements:
+        - Effect: 'Allow'
+          Resource: '*'
+          Action:
+            - 'elasticloadbalancing:DescribeRules'
+            - 'cloudformation:CreateStack'
+            - 'route53:CreateHostedZone'
+            - 'acm:RequestCertificate'
+            - 'elasticfilesystem:TagResource'
+            - 'elasticfilesystem:ClientRootAccess'
+            - 'elasticfilesystem:ClientWrite'
+            - 'elasticfilesystem:ClientMount'
+            - 'elasticfilesystem:CreateAccessPoint'
+            - 'elasticfilesystem:FullAccess'
+            - 'elasticloadbalancing:DescribeTargetGroups'
+            - 'elasticloadbalancing:CreateTargetGroup'
+            - 'elasticloadbalancing:DeleteTargetGroup'
+            - 'elasticloadbalancing:CreateRule'
+            - 'elasticloadbalancing:DeleteRule'
+            - 'ecs:DescribeServices'
+            - 'ecs:CreateService'
+            - 'ecs:DeleteService'
+            - 'iam:PassRole'
+            - 'ecs:RegisterTaskDefinition'
+
+plugins:
+  - serverless-offline
+  - serverless-python-requirements
+
+functions:
+  create_account:
+    handler: handler.create_account
+    events:
+      - httpApi:
+          path: /create_account
+          method: post
+    layers:
+      - arn:aws:lambda:us-west-2:544012685056:layer:pymysql:5

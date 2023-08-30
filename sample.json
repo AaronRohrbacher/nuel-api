@@ -1,0 +1,142 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "The template used to create an ECS Service from the ECS Console.",
+    "Parameters": {
+        "ECSClusterName": {
+            "Type": "String",
+            "Default": "nuel-wp"
+        },
+        "SecurityGroupIDs": {
+            "Type": "CommaDelimitedList",
+            "Default": "sg-e36d02a9"
+        },
+        "SubnetIDs": {
+            "Type": "CommaDelimitedList",
+            "Default": ""
+        },
+        "VpcID": {
+            "Type": "String",
+            "Default": "vpc-7750fe0f"
+        },
+        "LoadBalancerName": {
+            "Type": "String",
+            "Default": "nuel-wp"
+        }
+    },
+    "Resources": {
+        "ECSService": {
+            "Type": "AWS::ECS::Service",
+            "Properties": {
+                "Cluster": "nuel-wp",
+                "TaskDefinition": "arn:aws:ecs:us-west-2:544012685056:task-definition/nuel-wp:36",
+                "LaunchType": "EC2",
+                "ServiceName": "thing--com",
+                "SchedulingStrategy": "REPLICA",
+                "DesiredCount": 1,
+                "LoadBalancers": [
+                    {
+                        "ContainerName": "nuel-wp",
+                        "ContainerPort": 80,
+                        "LoadBalancerName": {
+                            "Ref": "AWS::NoValue"
+                        },
+                        "TargetGroupArn": {
+                            "Ref": "TargetGroup"
+                        }
+                    }
+                ],
+                "DeploymentConfiguration": {
+                    "MaximumPercent": 200,
+                    "MinimumHealthyPercent": 100,
+                    "DeploymentCircuitBreaker": {
+                        "Enable": true,
+                        "Rollback": true
+                    }
+                },
+                "DeploymentController": {
+                    "Type": "ECS"
+                },
+                "ServiceConnectConfiguration": {
+                    "Enabled": false
+                },
+                "PlacementStrategies": [
+                    {
+                        "Field": "attribute:ecs.availability-zone",
+                        "Type": "spread"
+                    },
+                    {
+                        "Field": "instanceId",
+                        "Type": "spread"
+                    }
+                ],
+                "PlacementConstraints": [],
+                "Tags": [],
+                "EnableECSManagedTags": true
+            },
+            "DependsOn": [
+                "ListenerRule"
+            ]
+        },
+        "TargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "HealthCheckPath": "/wp-admin/css/install.min.css?ver=6.2.2",
+                "Name": "thing--com",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "TargetType": "instance",
+                "HealthCheckProtocol": "HTTP",
+                "VpcId": "vpc-7750fe0f"
+            }
+        },
+        "ListenerRule": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "Properties": {
+                "Actions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "TargetGroup"
+                        }
+                    }
+                ],
+                "Conditions": [
+                    {
+                        "Field": "host-header",
+                        "Values": [
+                            "nuel.bludget.com"
+                        ]
+                    }
+                ],
+                "ListenerArn": "arn:aws:elasticloadbalancing:us-west-2:544012685056:listener/app/nuel-wp/7d9dd0a73c679972/d110efc9b92e9bc1",
+                "Priority": "1"
+            }
+        }
+    },
+    "Outputs": {
+        "ClusterName": {
+            "Description": "The cluster used to create the service.",
+            "Value": {
+                "Ref": "ECSClusterName"
+            }
+        },
+        "ECSService": {
+            "Description": "The created service.",
+            "Value": {
+                "Ref": "ECSService"
+            }
+        },
+        "TargetGroup": {
+            "Description": "The created target group.",
+            "Value": {
+                "Ref": "TargetGroup"
+            }
+        },
+        "ListenerRule": {
+            "Description": "The created listener rule.",
+            "Value": {
+                "Ref": "ListenerRule"
+            }
+        }
+    }
+}
